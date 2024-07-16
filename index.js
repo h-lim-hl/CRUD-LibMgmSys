@@ -1,3 +1,7 @@
+/*  ########################### TODO
+    Remove UID
+    check ISBN is unique
+*/
 const prompt = require('prompt-sync')();
 
 const AUTHORPOOL = [
@@ -7,7 +11,7 @@ const AUTHORPOOL = [
 
 const BOOKTITLEPOOL = [
     "Slave Of The East", "Rebel Of The Mountain", "Horses Of Perfection",
-    "Aliens Of Fire",  "Children And Warriors", "Robots And Doctors",
+    "Aliens Of Fire", "Children And Warriors", "Robots And Doctors",
     "Intention With A Goal", "Luck Without A Conscience",
     "Forsaken By The West", "Visiting The West"
 ];
@@ -15,22 +19,138 @@ const BOOKTITLEPOOL = [
 let idCount = 0;
 let books = [];
 
-function doesIsbnExist(books, isbn) {
-    for(let book of books) {
-        if(book.isbn === isbn) {
-            return true;
-        }
-    }
-    return false;
+
+/*******************************************************************************
+* Function Name: 
+* Param (): 
+* Return: 
+* Description:
+* 
+*
+*******************************************************************************/
+
+function extractIsbnSymbols(str) {
+    const regex = /(\d|[xX]+)/g;
+    let capture = str.match(regex);
+    return capture.join('');
 }
 
-function getRandomIsbn () {
-    return (parseInt(Math.random() * 10 % 2) == 0) ?
-     Math.random() * 10 : Math.random() * 13;
+function sumIsbn10Num(isbn, start = 0, end = -1) {
+    let sum = 0;
+
+    // check number length
+    if (isbn.length != 10) {
+        console.log("sumIsbn13Num(): input is not an ISBN-10 number!");
+        return -1;
+    }
+
+    // check if not custom end
+    if (end == -1) {
+        end = 10;
+    }
+
+    // sum from left to right isbn[n] * (10 - n)
+    // so n = 1 : isbn[1] * 9
+    // if isbn[n] is X then isbn[n] = 10
+    for (; end <= start; ++start) {
+        if (isbn[start].toLowerCase() == 'x') {
+            sum += 10 * (10 - start);
+        }
+        else {
+            sum += parseInt(isbn[start]) * (10 - start);
+        }
+    }
+
+    if (sum == NaN) console.log("sumIsbn10Num() sum error!");
+
+    return sum;
+}
+
+function sumIsbn13Num(isbn, start = 0, end = -1) {
+    let sum = 0;
+
+    // check number length
+    if (isbn.length != 13) {
+        console.log("sumIsbn13Num(): input is not an ISBN-13 number!");
+        return -1;
+    }
+
+    // sum from left to right if digit place is odd: sum += 1, else: sum += 3
+    if (end == -1) end = isbn.length;
+    for (; start < end; ++start) {
+        sum += parseInt(isbn[start]) * ((start % 2 == 0) ? 1 : 3);
+    }
+
+    if (sum == NaN) console.log("sumIsbn13Num() sum error!");
+
+    return sum;
+}
+
+/*******************************************************************************
+* Function Name: validateIsbn
+* Param (isbn): String that represents a possible isbn
+* Return: true if given isbn is valid, false otherwise.
+* Description:
+* 
+* Formula for ISBN-10 check is Sum(digit * nth place) | 11
+* Formula for ISBN-13 check is (Sum(even_digit)+Sum(odd_digit*3))|10
+*
+*******************************************************************************/
+
+function validateIsbn(isbn) {
+    isbn = extractIsbnSymbols(isbn);
+    console.log(isbn);
+    if (isbn.length == 10) {
+        return sumIsbn10Num(isbn) % 11 == 0;
+    }
+    else if (isbn.length == 13) {
+        return (sumIsbn13Num(isbn) % 10 == 0);
+    }
+    console.log("validateIsbn(): invalid length!")
+    return false;
+}
+// ########################################### WIP
+function getRandomIsbn(is13Long = false) {
+    const BREAKSYMBOL = '-';
+    let newIsbn = "";
+    let randNum = 
+            String(Math.floor(Math.random() * 10 ** 9)).padStart(9, '0');
+
+    if (is13Long) {
+        const FIXEDTHREE = "978";
+              
+        newIsbn = FIXEDTHREE + randNum;
+        
+        console.log(newIsbn);
+
+        let  sum = 0;
+        for (let i = 0; i < newIsbn.length; ++i) {
+            sum += parseInt(newIsbn[i]) * ((i % 2 == 0) ? 1 : 3);
+        }
+        
+        newIsbn += String(10 - (sum % 10));
+    }
+    else  {
+
+        console.log(randNum);
+
+        let sum = 0;
+        for (let start = 0; randNum.length < start; ++start) {
+                sum += parseInt(randNump[start]) * (10 - start);
+        }
+
+        let checkValue = sum % 11;
+        newIsbn = randNum + (checkValue == 10 ? 'X' : checkValue);
+    }
+    return newIsbn;
+}
+
+function validateBook(book) {
+    return(validateIsbn(book.isbn));
 }
 
 function addBook(books, book) {
-    if(validateBook(book)) {
+    if (validateBook(book)) {
         books.push(book);
         console.log(`New Book ${book.title} added`);
         return true;
@@ -40,7 +160,7 @@ function addBook(books, book) {
     }
 }
 
-function addBook(books, title, author, isbn) {
+function addBookCustom(books, title, author, isbn) {
     let newBook = {
         uid: idCount++,
         title: title,
@@ -52,16 +172,16 @@ function addBook(books, title, author, isbn) {
 }
 
 function addRandomBook(books) {
-    addBook(books,
-        BOOKTITLEPOOL[parseInt(Math.random() * BOOKTITLEPOOL.length)],
-        AUTHORPOOL[parseInt(Math.random() * AUTHORPOOL.length)],
+    addBookCustom(books,
+        BOOKTITLEPOOL[Math.floor(Math.random() * BOOKTITLEPOOL.length)],
+        AUTHORPOOL[Math.floor(Math.random() * AUTHORPOOL.length)],
         getRandomIsbn()
     );
 }
 
 function returnBook(books, isbn) {
-    for(let book of books) {
-        if(book.isbn === isbn && book.isCheckedOut) {
+    for (let book of books) {
+        if (book.isbn === isbn && book.isCheckedOut) {
             book.isCheckedOut = true;
             console.out("Book Returned!");
             return;
@@ -79,6 +199,58 @@ function checkOutBook(books, isbn) {
         }
     }
     console.log(`Book with ISBN No.: ${isbn} cannot be found!`);
+}
+
+function showAllBook(books) {
+    for (let book of books) {
+        console.log(
+                `(${book.uid}) ${book.title}\n`,
+                `By ${book.author}\n`,
+                `ISBN ${book.isbn}\n`,
+                `On loan: ${book.isCheckedOut}\n`
+        );
+    }
+    console.log("Cateloge Display Complete!");
+}
+
+function addNewBook(books, getRandomIsbn = false) {
+    let title = prompt("Enter book title: ");
+    let author = prompt("Enter book author: ");
+    let isbn = prompt("Enter book ISBN: ");
+
+    if(getRandomIsbn) isbn = getRandomIsbn();
+
+    let newbook  =  {
+        uid: ++idCount,
+        title: title,
+        author: author,
+        isbn: isbn,
+        isCheckedOut: false
+    };
+
+    addBook(books, newbook);
+}
+
+function checkOutBook(books, isbn) {
+    for(let book of books) {
+        if(book.isbn == isbn) {
+            book.isCheckedOut = true;
+            console.log(`Book \"${book.title}\" checkedout successfully!`);
+            return;
+        }
+    }
+    console.log(`Book with ISBN: ${isbn}, could not be found!`);
+}
+
+function returnBook(books, isbn) {
+    for(let book of books) {
+        if(book.isbn == isbn) {
+            book.isCheckedOut = false;
+            console.log(`Book \"${book.title}\" returned successfully!`);
+            return;
+        }
+    }
+    console.log(`Book with ISBN: ${isbn}, could not be found!`);
 }
 
 function showMenu() {
@@ -102,15 +274,19 @@ function App() {
         switch (input) {
             case 1:
                 //Show All Books
+                showAllBook(books);
                 break;
             case 2:
                 //Add new Book
+                addNewBook(books);
                 break;
             case 3:
                 //Check out a Book
+                checkOutBook(books);
                 break;
             case 4:
                 //Return Book
+                returnBook(books, isbn);
                 break;
             case 5:
                 //Exit
@@ -123,4 +299,15 @@ function App() {
     }
 }
 
-App();
+//App();
+
+//console.log(validateIsbn("978-1-408-85565-2"));
+//console.log(validateIsbn("0-14242417X"));
+
+// let isbn = getRandomIsbn();
+// console.log(isbn);
+// console.log(validateIsbn(isbn));
+let testBooks = [];
+for(let i =  0; i < 10; ++i) addRandomBook(testBooks);
+// console.log(testBooks);
+showAllBook(testBooks);
