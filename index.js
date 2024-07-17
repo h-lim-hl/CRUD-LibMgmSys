@@ -1,4 +1,6 @@
 /*  ########################### TODO
+    Add a feature to search for books by title or author.
+    
     Use Date type for "late return" feature
     https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/now
 */
