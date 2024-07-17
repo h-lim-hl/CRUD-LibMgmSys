@@ -1,6 +1,6 @@
 /*  ########################### TODO
-    Remove UID
-    check ISBN is unique
+    Use Date type for "late return" feature
+    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/now
 */
 const prompt = require('prompt-sync')();
 
@@ -16,16 +16,13 @@ const BOOKTITLEPOOL = [
     "Forsaken By The West", "Visiting The West"
 ];
 
-let idCount = 0;
 let books = [];
-
 
 /*******************************************************************************
 * Function Name: 
 * Param (): 
 * Return: 
 * Description:
-* 
 *
 *******************************************************************************/
 
@@ -61,7 +58,7 @@ function sumIsbn10Num(isbn, start = 0, end = -1) {
         }
     }
 
-    if (sum == NaN) console.log("sumIsbn10Num() sum error!");
+    if (sum == NaN) console.log("sumIsbn10Num(): sum error!");
 
     return sum;
 }
@@ -91,10 +88,9 @@ function sumIsbn13Num(isbn, start = 0, end = -1) {
 * Param (isbn): String that represents a possible isbn
 * Return: true if given isbn is valid, false otherwise.
 * Description:
-* 
-* Formula for ISBN-10 check is Sum(digit * nth place) | 11
-* Formula for ISBN-13 check is (Sum(even_digit)+Sum(odd_digit*3))|10
-*
+*   Formula for ISBN-10 check is Sum(digit * nthPlaceFromRight) | 11
+*   Formula for ISBN-13 check is
+*     (Sum(evenPlaceDigit) + Sum(oddPlaceDigit*3)) | 10
 *******************************************************************************/
 
 function validateIsbn(isbn) {
@@ -109,7 +105,7 @@ function validateIsbn(isbn) {
     console.log("validateIsbn(): invalid length!")
     return false;
 }
-// ########################################### WIP
+
 function getRandomIsbn(is13Long = false) {
     const BREAKSYMBOL = '-';
     let newIsbn = "";
@@ -149,20 +145,26 @@ function validateBook(book) {
     return(validateIsbn(book.isbn));
 }
 
+function isUniqueBook(books, book) {
+    for(let _book in books) 
+        if(book.isbn == _book.isbn) return false;
+    
+    return true;
+}
+
 function addBook(books, book) {
-    if (validateBook(book)) {
+    if (validateBook(book) && isUniqueBook(books, book)) {
         books.push(book);
         console.log(`New Book ${book.title} added`);
         return true;
     } else {
-        console.log("Book Data is invalid!");
+        console.log("Book Data is invalid or ISBN is not unique!");
         return false;
     }
 }
 
 function addBookCustom(books, title, author, isbn) {
     let newBook = {
-        uid: idCount++,
         title: title,
         author: author,
         isbn: isbn,
@@ -202,9 +204,10 @@ function checkOutBook(books, isbn) {
 }
 
 function showAllBook(books) {
+    let count = 0;
     for (let book of books) {
         console.log(
-                `(${book.uid}) ${book.title}\n`,
+                `(${count++}) ${book.title}\n`,
                 `By ${book.author}\n`,
                 `ISBN ${book.isbn}\n`,
                 `On loan: ${book.isCheckedOut}\n`
@@ -221,11 +224,11 @@ function addNewBook(books, getRandomIsbn = false) {
     if(getRandomIsbn) isbn = getRandomIsbn();
 
     let newbook  =  {
-        uid: ++idCount,
         title: title,
         author: author,
         isbn: isbn,
         isCheckedOut: false
+
     };
 
     addBook(books, newbook);
@@ -272,23 +275,23 @@ function App() {
         showMenu();
         const input = getUserInput();
         switch (input) {
-            case 1:
+            case '1':
                 //Show All Books
                 showAllBook(books);
                 break;
-            case 2:
+            case '2':
                 //Add new Book
                 addNewBook(books);
                 break;
-            case 3:
+            case '3':
                 //Check out a Book
                 checkOutBook(books);
                 break;
-            case 4:
+            case '4':
                 //Return Book
                 returnBook(books, isbn);
                 break;
-            case 5:
+            case '5':
                 //Exit
                 running = false;
                 break;
